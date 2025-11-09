@@ -27,25 +27,25 @@ contract MultiAssetAaveTest is Test {
     address constant aUSDT = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("ETH_RPC_URL"));
-        
-        // Deploy ATokenVaults
-        usdcVault = new ATokenVault(AAVE_POOL, aUSDC, "Aave USDC Vault", "avUSDC");
-        daiVault = new ATokenVault(AAVE_POOL, aDAI, "Aave DAI Vault", "avDAI");
-        usdtVault = new ATokenVault(AAVE_POOL, aUSDT, "Aave USDT Vault", "avUSDT");
-        
-        address tokenizedStrategyImpl = address(new YieldDonatingTokenizedStrategy());
-        
-        // Deploy strategy with vault addresses
-        strategy = new MultiAssetAaveStrategy(
-            USDC,
-            USDC, DAI, USDT,
-            address(usdcVault), address(daiVault), address(usdtVault),
-            "Multi-Asset Aave Strategy",
-            management, keeper, emergencyAdmin, dragonRouter,
-            true, tokenizedStrategyImpl
-        );
-    }
+    vm.createSelectFork(vm.envString("ETH_RPC_URL"));
+    
+    // Deploy ATokenVaults
+    usdcVault = new ATokenVault(AAVE_POOL, aUSDC, "Aave USDC Vault", "avUSDC");
+    daiVault = new ATokenVault(AAVE_POOL, aDAI, "Aave DAI Vault", "avDAI");
+    usdtVault = new ATokenVault(AAVE_POOL, aUSDT, "Aave USDT Vault", "avUSDT");
+    
+    address tokenizedStrategyImpl = address(new YieldDonatingTokenizedStrategy());
+    
+    // Deploy strategy with vault addresses
+    strategy = new MultiAssetAaveStrategy(
+        USDC,
+        USDC, DAI, USDT,
+        address(usdcVault), address(daiVault), address(usdtVault),
+        "Multi-Asset Aave Strategy",
+        management, keeper, emergencyAdmin, dragonRouter,
+        true, tokenizedStrategyImpl
+    );
+}
 
     function test_vaultDeployment() public view {
         assertEq(address(usdcVault.aavePool()), AAVE_POOL);

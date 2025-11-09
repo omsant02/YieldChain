@@ -8,8 +8,8 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
  * @title MultiAssetAaveStrategy
- * @notice Multi-asset yield strategy using Aave V3 ERC-4626 vaults
- * @dev Accepts USDC, DAI, USDT via ATokenVault wrappers
+ * @notice Multi-asset yield strategy with manual rebalancing support
+ * @dev Uses Aave ERC-4626 vaults, designed for external swap integration
  */
 contract MultiAssetAaveStrategy is BaseStrategy {
     using SafeERC20 for ERC20;
@@ -24,6 +24,9 @@ contract MultiAssetAaveStrategy is BaseStrategy {
     
     address public currentDeployedAsset;
     IERC4626 public currentVault;
+    
+    event RebalanceInitiated(address indexed fromAsset, uint256 amount);
+    event RebalanceCompleted(address indexed toAsset, uint256 amount);
 
     constructor(
         address _asset,
@@ -81,6 +84,42 @@ contract MultiAssetAaveStrategy is BaseStrategy {
         uint256 deployedAssets = currentVault.convertToAssets(vaultShares);
         uint256 idleAssets = ERC20(address(asset)).balanceOf(address(this));
         _totalAssets = deployedAssets + idleAssets;
+    }
+
+    /**
+     * @notice Step 1: Withdraw from current vault for rebalancing
+     * @param amount Amount to withdraw
+     */
+    function initiateRebalance(uint256 amount) external onlyManagement {
+        require(amount > 0, "Amount must be > 0");
+        
+        currentVault.withdraw(amount, address(this), address(this));
+        
+        emit RebalanceInitiated(currentDeployedAsset, amount);
+    }
+    
+    /**
+     * @notice Step 2: Complete rebalance by depositing new asset
+     * @param toAsset Target asset that was received from swap
+     */
+    function completeRebalance(address toAsset) external onlyManagement {
+        require(
+            toAsset == USDC || toAsset == DAI || toAsset == USDT,
+            "Invalid target asset"
+        );
+        require(toAsset != currentDeployedAsset, "Already in target asset");
+        
+        uint256 newBalance = ERC20(toAsset).balanceOf(address(this));
+        require(newBalance > 0, "No new asset to deposit");
+        
+        // Update current asset and vault
+        currentDeployedAsset = toAsset;
+        currentVault = _getVault(toAsset);
+        
+        // Deposit to new vault
+        currentVault.deposit(newBalance, address(this));
+        
+        emit RebalanceCompleted(toAsset, newBalance);
     }
 
     function _getVault(address _asset) internal view returns (IERC4626) {
