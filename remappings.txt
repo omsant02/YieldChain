@@ -4,3 +4,5 @@
 @tokenized-strategy-periphery/=dependencies/tokenized-strategy-periphery-3.0.2/
 @tokenized-strategy/=dependencies/tokenized-strategy-3.0.4/src
 forge-std-1.11.0/=dependencies/forge-std-1.11.0/
+v4-core/=dependencies/v4-core/src/
+v4-periphery/=dependencies/v4-periphery/src/
