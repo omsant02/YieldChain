@@ -20,6 +20,27 @@ Every optimization = more funding.
 
 ---
 
+## Key Components
+
+### MultiAssetAaveStrategy (150 LOC)
+- Inherits Octant's BaseStrategy
+- Manages 3 assets (USDC/DAI/USDT)
+- Functions: deposit, withdraw, initiateRebalance, completeRebalance
+- Auto-donates all yield to Dragon Router
+
+### ATokenVault (60 LOC)
+- ERC-4626 wrapper for Aave aTokens
+- Converts aUSDC/aDAI/aUSDT into standard vault interface
+- 3 deployed instances (one per asset)
+
+### PublicGoodsSwapHook (80 LOC)
+- Uniswap V4 afterSwap hook
+- Captures 0.01% of swap output
+- Donates to Dragon Router
+- **Proven: 598B wei donated per swap**
+
+---
+
 ## Architecture
 ```
 ┌─────────────────┐
