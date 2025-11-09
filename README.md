@@ -178,10 +178,80 @@ Ran 4 test suites: 12 tests passed, 0 failed
 
 ---
 
+## Test Suite Explained
+
+### Hook Tests (`PublicGoodsHookTest.t.sol`)
+
+**What it tests:**
+- Hook deploys at correct deterministic address
+- Hook has proper permissions (afterSwap + afterSwapReturnDelta)
+- **Most Important:** Swap actually donates fees to Dragon Router
+
+**Key Test:**
+```solidity
+test_swapDonatesFees()
+```
+Executes a real swap through Uniswap V4 pool with our hook. Proves 598 billion wei gets donated to the donation address.
+
+**Why it matters:** This is the smoking gun - proof our hook captures fees and donates them!
+
+---
+
+### Strategy Tests (`MultiAssetAaveTest.t.sol`)
+
+**What it tests:**
+- All 3 ATokenVaults deploy correctly (USDC/DAI/USDT)
+- Each vault properly wraps its corresponding aToken
+- Strategy configured with correct ERC-4626 vault addresses
+- Strategy can access vaults via IERC4626 interface
+
+**Why it matters:** Proves we properly integrated Aave's ERC-4626 pattern and can manage multiple assets.
+
+---
+
+### Integration Tests (`IntegrationTest.t.sol`)
+
+**What it tests:**
+- Strategy points to correct Aave vaults after deployment
+- Current vault reference works
+- ERC-4626 compliance verified
+
+**Why it matters:** Ensures all components wire together correctly.
+
+---
+
+### Full Flow Test (`FullRebalanceTest.t.sol`)
+
+**What it tests:** THE COMPLETE DOUBLE DONATION ARCHITECTURE!
+
+**Step by step:**
+1. ✅ Hook deploys with donation address set to Dragon Router
+2. ✅ Execute swap through V4 pool → Hook captures 598B wei
+3. ✅ Strategy deployed with all 3 Aave vaults configured
+4. ✅ Deposit 1000 USDC to Aave vault works
+5. ✅ Initiate rebalance withdraws 500 USDC successfully
+6. ✅ Strategy has idle USDC ready for external swap
+
+**Console Output:**
+```
+=== STEP 3: Verify Hook Captured Fee ===
+Fee donated: 598173776050 wei
+
+=== SUCCESS: COMPLETE SYSTEM PROVEN! ===
+1. Hook captures swap fees: 598173776050 wei
+2. Strategy uses ERC-4626 Aave vaults: YES
+3. Rebalancing functions work: YES
+4. Architecture ready for double donation!
+```
+
+**Why it matters:** This single test proves the entire concept works end-to-end. The hook captures fees, the strategy integrates with Aave, and the rebalancing architecture is complete.
+
+---
+
 ## Quick Start
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/yieldchain-double-impact
+git clone https://github.com/omsant02/YieldChain
 cd yieldchain-double-impact
 
 # Setup
@@ -192,8 +262,14 @@ cp .env.example .env
 forge install
 forge build
 
-# Test
+# Test (all tests)
+forge test
+
+# Test (with verbose output)
 forge test -vv
+
+# Test (specific test showing donations)
+forge test --match-test test_swapDonatesFees -vv
 ```
 
 ---
@@ -214,11 +290,11 @@ forge test -vv
 **Design Choice:** We use governance-triggered rebalancing instead of automated for:
 
 1. **Safety** - No automated swap risks or MEV attacks
-2. **Flexibility** - Can use best route at execution time
-3. **Gas Efficiency** - Rebalance only when needed
-4. **Production Reality** - Most protocols (Yearn, Enzyme) use manual
+2. **Flexibility** - Can use best route at execution time (Uniswap, Cowswap, 1inch, etc.)
+3. **Gas Efficiency** - Rebalance only when APY差 justifies the cost
+4. **Production Reality** - Most protocols (Yearn, Enzyme) use manual rebalancing
 
-The hook still captures fees regardless of swap route.
+The hook still captures fees regardless of which swap route management chooses.
 
 ---
 
@@ -241,6 +317,29 @@ The hook still captures fees regardless of swap route.
 - Manual rebalancing = no automated swap risks
 - Emergency withdrawal functions
 - All roles use standard Octant access control
+
+---
+
+## Project Structure
+```
+src/
+├── strategies/
+│   └── yieldDonating/
+│       └── MultiAssetAaveStrategy.sol
+├── external/
+│   └── aave/
+│       └── ATokenVault.sol
+├── hooks/
+│   └── PublicGoodsSwapHook.sol
+└── test/
+    ├── yieldDonating/
+    │   ├── MultiAssetAaveTest.t.sol
+    │   ├── IntegrationTest.t.sol
+    │   └── FullRebalanceTest.t.sol
+    └── hooks/
+        ├── PublicGoodsHookTest.t.sol
+        └── PublicGoodsHookUnit.t.sol
+```
 
 ---
 
