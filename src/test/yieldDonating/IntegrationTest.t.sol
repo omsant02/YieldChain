@@ -4,10 +4,12 @@ pragma solidity ^0.8.25;
 import "forge-std/Test.sol";
 import {MultiAssetAaveStrategy} from "../../strategies/yieldDonating/MultiAssetAaveStrategy.sol";
 import {YieldDonatingTokenizedStrategy} from "@octant-core/strategies/yieldDonating/YieldDonatingTokenizedStrategy.sol";
+import {ATokenVault} from "../../external/aave/ATokenVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract IntegrationTest is Test {
     MultiAssetAaveStrategy public strategy;
+    ATokenVault public usdcVault;
     
     address public management = address(1);
     address public keeper = address(2);
@@ -21,32 +23,29 @@ contract IntegrationTest is Test {
     address constant aUSDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
     address constant aDAI = 0x018008bfb33d285247A21d44E50697654f754e63;
     address constant aUSDT = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a;
-    address constant USDC_WHALE = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
 
     function setUp() public {
         vm.createSelectFork(vm.envString("ETH_RPC_URL"));
         
+        usdcVault = new ATokenVault(AAVE_POOL, aUSDC, "Aave USDC Vault", "avUSDC");
+        ATokenVault daiVault = new ATokenVault(AAVE_POOL, aDAI, "Aave DAI Vault", "avDAI");
+        ATokenVault usdtVault = new ATokenVault(AAVE_POOL, aUSDT, "Aave USDT Vault", "avUSDT");
+        
         address tokenizedStrategyImpl = address(new YieldDonatingTokenizedStrategy());
         
         strategy = new MultiAssetAaveStrategy(
-            AAVE_POOL, USDC, USDC, DAI, USDT,
-            aUSDC, aDAI, aUSDT,
+            USDC,
+            USDC, DAI, USDT,
+            address(usdcVault), address(daiVault), address(usdtVault),
             "Multi-Asset Aave Strategy",
             management, keeper, emergencyAdmin, dragonRouter,
             true, tokenizedStrategyImpl
         );
     }
 
-    function test_strategyDeployment() public view {
-        assertTrue(address(strategy) != address(0));
-        assertEq(strategy.aavePool(), AAVE_POOL);
-        assertEq(strategy.USDC(), USDC);
-        console.log("Strategy deployed successfully");
-    }
-    
-    function test_aaveIntegration() public {
+    function test_erc4626Integration() public view {
         assertEq(strategy.currentDeployedAsset(), USDC);
-        assertEq(strategy.aUSDC(), aUSDC);
-        console.log("Aave integration configured correctly");
+        assertTrue(address(strategy.currentVault()) == address(usdcVault));
+        console.log("ERC-4626 integration working");
     }
 }
