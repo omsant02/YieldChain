@@ -4,6 +4,9 @@
 
 **Octant DeFi Hackathon 2025**
 
+<img width="1456" height="826" alt="image" src="https://github.com/user-attachments/assets/cb20bb9a-b6e3-445f-8e8d-9d568b0d13d1" />
+
+
 ---
 
 ## The Innovation
